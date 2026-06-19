@@ -20,7 +20,7 @@ public class URLServlet extends HttpServlet {
         String annotationParam = getInitParameter("annotation");
         
         if (packagesParam == null || annotationParam == null) {
-            throw new ServletException("Les paramètres 'packages' et 'annotation' doivent être configurés dans web.xml");
+            throw new ServletException("<p>Les paramètres 'packages' et 'annotation' doivent être configurés dans web.xml</p>");
         }
         
         List<String> packages = new ArrayList<>();
@@ -33,9 +33,9 @@ public class URLServlet extends HttpServlet {
         
         controllerClasses = ClassScanner.chargement_classe(packages, annotationName);
         
-        System.out.println("Classes avec l'annotation @" + annotationName + ":");
+        System.out.println("<p>Classes avec l'annotation @" + annotationName + ":</p>");
         for (String className : controllerClasses) {
-            System.out.println("  - " + className);
+            System.out.println("<p>  - " + className + "</p>");
         }
     }
     
@@ -48,13 +48,14 @@ public class URLServlet extends HttpServlet {
         String queryString = request.getQueryString();
         
         try {
-            out.println("Request URL: " + url);
-            out.println("Classes avec l'annotation @" + annotationName + ":");
+            out.println("<p>Request URL: " + url + "</p>");
+            out.println("<p>Methode: " + request.getMethod() + "</p>");
+            out.println("<p>Classes avec l'annotation @" + annotationName + ":</p>");
             for (String className : controllerClasses) {
-                out.println(className);
+                out.println("<p>" + className + "</p>");
             }
             if (controllerClasses.isEmpty()) {
-                out.println("Aucune classe trouvée avec cette annotation.");
+                out.println("<p>Aucune classe trouvée avec cette annotation.</p>");
             }
         } finally {
             out.close();
