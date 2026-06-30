@@ -13,10 +13,11 @@ import java.lang.reflect.Method;
 import java.lang.annotation.Annotation;
 import java.net.URL;
 import java.util.Enumeration;
+import com.example.sprint.util.UrlMethod;
 
 public class URLServlet extends HttpServlet {
     
-    private Map<String,Mapping> controllerClasses = new HashMap<>();
+    private Map<UrlMethod,Mapping> controllerClasses = new HashMap<>();
     private String annotationName;
     private List<String> url_valide = new ArrayList<>();
     private List<String> annotation_valide = new ArrayList<>();
@@ -40,8 +41,11 @@ public class URLServlet extends HttpServlet {
         }
         
         annotationName = annotationParam.trim();
-        
-        controllerClasses = ClassScanner.chargement_classe(packages, annotationName);
+        try {
+            controllerClasses = ClassScanner.chargement_classe(packages, annotationName);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
 
     }
     
@@ -66,9 +70,10 @@ public class URLServlet extends HttpServlet {
             out.println("<p>Mapping Path: " + mappingPath + "</p>");
             out.println("<br>");
 
-            if(controllerClasses.containsKey(mappingPath) && controllerClasses.get(mappingPath).getHttpMethode().equalsIgnoreCase(request.getMethod())) {
+            UrlMethod urlMethod = new UrlMethod(mappingPath, request.getMethod());
+            if(controllerClasses.containsKey(urlMethod)) {
                 try{
-                    Mapping mapping = controllerClasses.get(mappingPath);
+                    Mapping mapping = controllerClasses.get(urlMethod);
 
                     // 1. Recuperer la classe du contrôleur 
                     Class<?> controllerClass = mapping.getClazz();
@@ -95,12 +100,14 @@ public class URLServlet extends HttpServlet {
             } else {
                 out.println("<p>Aucune classe trouvée pour URL: " + mappingPath + "</p>");
                 out.println("<p>Voici toutes les URL valides:</p>");
-                for (String validUrl : controllerClasses.keySet()) {
-                    out.println("<p><a href=\"" + contextPath + validUrl + "\">" + validUrl + "</a></p>");
+                for (UrlMethod validUrl : controllerClasses.keySet()) {
+                    out.println("<p><a href=\"" + contextPath + validUrl.getUrl() + "\">" + validUrl.getUrl() + "</a></p>");
                 }
             }
             
             out.println("</body></html>");
+        } catch(Exception e){
+            out.print("Erreur: "+e.getMessage());
         } finally {
             out.close();
         }

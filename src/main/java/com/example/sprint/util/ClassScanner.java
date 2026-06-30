@@ -13,6 +13,8 @@ import java.util.HashMap;
 import com.example.sprint.util.Mapping;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
+import com.example.sprint.util.UrlMethod;
+
 
 public class ClassScanner {
 
@@ -23,8 +25,8 @@ public class ClassScanner {
      * @param annotationName Nom complet de l'annotation à rechercher
      * @return Liste des noms complets des classes qui ont l'annotation
      */
-    public static Map<String,Mapping> chargement_classe(List<String> packages, String annotationName) {
-        Map<String,Mapping> map = new HashMap<>();
+    public static Map<UrlMethod,Mapping> chargement_classe(List<String> packages, String annotationName) {
+        Map<UrlMethod, Mapping> controllerClasses = new HashMap<>();
         
         try {
             // 1. On charge la classe de l'annotation pour les classes (ex: @Controller)
@@ -51,9 +53,18 @@ public class ClassScanner {
                                         String url_mapping = (String) valueMethod.invoke(annot);
                                         Method methodAttr = annot.annotationType().getMethod("method");
                                         String httpMethod = (String) methodAttr.invoke(annot);
+
+                                        UrlMethod key = new UrlMethod(url_mapping, httpMethod.toUpperCase());
+    
+                                        if (controllerClasses.containsKey(key)) {
+                                            Mapping existingMapping = controllerClasses.get(key);
+                                            throw new Exception("Doublon de mapping détecté ! L'URL '" + url_mapping + "' " +
+                                                                "avec la méthode '" + httpMethod + "' est déjà associée à la méthode : " +
+                                                                existingMapping.getClazz().getName() + "." + existingMapping.getMethode().getName() + "()");
+                                        }
                                         
                                         Mapping mapping = new Mapping(clazz, m, url_mapping, httpMethod);
-                                        map.put(url_mapping, mapping);
+                                        controllerClasses.put(new UrlMethod(url_mapping, httpMethod), mapping);
                                     }
                                 }
                             }
@@ -73,7 +84,7 @@ public class ClassScanner {
             System.err.println("Le nom fourni n'est pas une annotation");
         }
         
-        return map;
+        return controllerClasses;
     }
     
     /**
