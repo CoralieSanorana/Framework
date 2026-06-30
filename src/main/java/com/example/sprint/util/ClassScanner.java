@@ -2,11 +2,17 @@ package com.example.sprint.util;
 
 import java.io.File;
 import java.io.IOException;
-import java.net.URL;
 import java.lang.annotation.Annotation;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.List;
+import java.lang.reflect.Method;
+import java.util.Map;
+import java.util.HashMap;
+import com.example.sprint.util.Mapping;
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServletRequest;
 
 public class ClassScanner {
 
@@ -17,28 +23,57 @@ public class ClassScanner {
      * @param annotationName Nom complet de l'annotation à rechercher
      * @return Liste des noms complets des classes qui ont l'annotation
      */
-    public static List<String> chargement_classe(List<String> packages, String annotationName) {
-        List<String> classesWithAnnotation = new ArrayList<>();
+    public static Map<String,Mapping> chargement_classe(List<String> packages, String annotationName) {
+        Map<String,Mapping> map = new HashMap<>();
         
-        for (String packageName : packages) {
-            try {
-                List<String> classes = getClasses(packageName);
-                for (String className : classes) {
-                    try {
-                        Class<?> clazz = Class.forName(className);
-                        if (hasAnnotation(clazz, annotationName)) {
-                            classesWithAnnotation.add(className);
+        try {
+            // 1. On charge la classe de l'annotation pour les classes (ex: @Controller)
+            Class<? extends Annotation> classAnnotation = Class.forName(annotationName).asSubclass(Annotation.class);
+            
+            // 2. On charge la classe de l'annotation pour les méthodes (ex: @Url)
+            Class<? extends Annotation> methodAnnotation = Class.forName("mg.itu.annotation.Url").asSubclass(Annotation.class);
+            
+            for (String packageName : packages) {
+                try {
+                    List<String> classes = getClasses(packageName);
+                    for (String className : classes) {
+                        try {
+                            Class<?> clazz = Class.forName(className);
+                            
+                            // Vérifier si la classe a l'annotation de classe (ex: @Controller)
+                            if (clazz.isAnnotationPresent(classAnnotation)) {
+                                Method[] methodes = clazz.getDeclaredMethods();
+                                for(Method m: methodes){
+                                    // Chercher les méthodes avec l'annotation de méthode (ex: @Url)
+                                    Annotation annot = m.getAnnotation(methodAnnotation);
+                                    if (annot != null) {
+                                        Method valueMethod = annot.annotationType().getMethod("value");
+                                        String url_mapping = (String) valueMethod.invoke(annot);
+                                        Method methodAttr = annot.annotationType().getMethod("method");
+                                        String httpMethod = (String) methodAttr.invoke(annot);
+                                        
+                                        Mapping mapping = new Mapping(clazz, m, url_mapping, httpMethod);
+                                        map.put(url_mapping, mapping);
+                                    }
+                                }
+                            }
+                        } catch (ClassNotFoundException e) {
+                            System.err.println("Classe non trouvée: " + className);
+                        } catch (Exception e) {
+                            System.err.println("Erreur lors de la lecture des méthodes de " + className + ": " + e.getMessage());
                         }
-                    } catch (ClassNotFoundException e) {
-                        System.err.println("Classe non trouvée: " + className);
                     }
+                } catch (IOException e) {
+                    System.err.println("Erreur lors du scan du package " + packageName + ": " + e.getMessage());
                 }
-            } catch (IOException e) {
-                System.err.println("Erreur lors du scan du package " + packageName + ": " + e.getMessage());
             }
+        } catch (ClassNotFoundException e) {
+            System.err.println("Annotation introuvable : " + e.getMessage());
+        } catch (ClassCastException e) {
+            System.err.println("Le nom fourni n'est pas une annotation");
         }
         
-        return classesWithAnnotation;
+        return map;
     }
     
     /**
@@ -89,7 +124,7 @@ public class ClassScanner {
         
         return classes;
     }
-    
+
     /**
      * Vérifie si une classe a l'annotation spécifiée
      */
