@@ -64,13 +64,34 @@ public class URLServlet extends HttpServlet {
             out.println("<p>Methode: " + request.getMethod() + "</p>");
             out.println("<p>Path: " + path + "</p>");
             out.println("<p>Mapping Path: " + mappingPath + "</p>");
+            out.println("<br>");
 
-            if(controllerClasses.containsKey(mappingPath) && controllerClasses.get(mappingPath).getHttpMethod().equalsIgnoreCase(request.getMethod())) {
-                Mapping mapping = controllerClasses.get(mappingPath);
-                out.println("<p>URL: " + mapping.getUrl() + "</p>");
-                out.println("<p>Classe: " + mapping.getClassName().getName() + "</p>");
-                out.println("<p>Méthode: " + mapping.getMethodName().getName() + "</p>");
-                out.println("<p>HTTP Method: " + mapping.getHttpMethod() + "</p>");
+            if(controllerClasses.containsKey(mappingPath) && controllerClasses.get(mappingPath).getHttpMethode().equalsIgnoreCase(request.getMethod())) {
+                try{
+                    Mapping mapping = controllerClasses.get(mappingPath);
+
+                    // 1. Recuperer la classe du contrôleur 
+                    Class<?> controllerClass = mapping.getClazz();
+                    
+                    // 2. Instancier dynamiquement l'objet controleur
+                    Object controllerInstance = controllerClass.getDeclaredConstructor().newInstance();
+                    
+                    // 3. Recuperer l'objet Method 
+                    Method methodToInvoke = mapping.getMethode();
+                    
+                    // 4. Invoquer la methode sur l'instance creer
+                    String resultat = (String) methodToInvoke.invoke(controllerInstance);
+                    
+                    // 5. Afficher le résultat dans le HTML
+                    out.println("<p>URL: " + mapping.getUrl() + "</p>"); 
+                    out.println("<p>Classe: " + controllerClass.getName() + "</p>"); 
+                    out.println("<p>Méthode Java: " + methodToInvoke.getName() + "</p>"); 
+                    out.println("<p><b>Résultat de l'exécution :</b> " + resultat + "</p>");
+                    out.println("<p>HTTP Method: " + mapping.getHttpMethode() + "</p>");
+                } catch (Exception e) {
+                    out.println("<p style='color:red;'>Erreur lors de l'invocation du contrôleur : " + e.getMessage() + "</p>");
+                    e.printStackTrace(); 
+                }
             } else {
                 out.println("<p>Aucune classe trouvée pour URL: " + mappingPath + "</p>");
                 out.println("<p>Voici toutes les URL valides:</p>");

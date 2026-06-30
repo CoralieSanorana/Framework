@@ -2,47 +2,47 @@ package com.example.sprint.util;
 import java.lang.reflect.Method;
 
 public class Mapping {
-    private Class<?> className;
-    private Method methodName;
+    private Class<?> clazz;
+    private Method methode;
     private String url;
-    private String httpMethod;  
+    private String httpMethode;  
 
-    public Mapping(Class<?> className, Method methodName, String url, String httpMethod) {
-        this.className = className;
-        this.methodName = methodName;
+    public Mapping(Class<?> clazz, Method methode, String url, String httpMethode) {
+        this.clazz = clazz;
+        this.methode = methode;
         this.url = url;
-        this.httpMethod = httpMethod;
+        this.httpMethode = httpMethode;
     }
 
-    public Class<?> getClassName() {
-        return className;
+    public Class<?> getClazz() {
+        return clazz;
     }
 
-    public Method getMethodName() {
-        return methodName;
+    public Method getMethode() {
+        return methode;
     }
 
     public String getUrl() {
         return url;
     }
 
-    public void setClassName(Class<?> className){
-        this.className = className;
+    public void setClazz(Class<?> clazz){
+        this.clazz = clazz;
     }
 
-    public void setMethodName(Method methodName){
-        this.methodName = methodName;
+    public void setMethode(Method methode){
+        this.methode = methode;
     }
 
     public void setUrl(String url){
         this.url = url;
     }
 
-    public String getHttpMethod() {
-        return httpMethod;
+    public String getHttpMethode() {
+        return httpMethode;
     }
 
-    public void setHttpMethod(String httpMethod) {
-        this.httpMethod = httpMethod;
+    public void setHttpMethode(String httpMethode) {
+        this.httpMethode = httpMethode;
     }
 }
