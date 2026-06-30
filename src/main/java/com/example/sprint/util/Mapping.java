@@ -14,6 +14,24 @@ public class Mapping {
         this.httpMethode = httpMethode;
     }
 
+    @Override
+    public boolean equals(Object obj) {
+        /*
+        if (this == obj) return true;
+        if (obj == null || getClass() != obj.getClass()) return false;
+        */
+       Mapping mapping = (Mapping) obj;
+        return url.equals(mapping.url) &&
+                httpMethode.equals(mapping.httpMethode);
+    }
+
+    @Override
+    public int hashCode() {
+        int result = url.hashCode();
+        result = 31 * result + httpMethode.hashCode();
+        return result;
+    }
+
     public Class<?> getClazz() {
         return clazz;
     }
