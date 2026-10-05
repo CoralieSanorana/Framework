@@ -7,13 +7,13 @@ import java.lang.reflect.Parameter;
 import java.util.Map;
 import java.util.HashMap;
 import com.google.gson.Gson;
-import jakarta.servlet.RequestDispatcher;
-import jakarta.servlet.ServletConfig;
-import jakarta.servlet.ServletContext;
-import jakarta.servlet.ServletException;
-import jakarta.servlet.http.HttpServlet;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
+import javax.servlet.RequestDispatcher;
+import javax.servlet.ServletConfig;
+import javax.servlet.ServletContext;
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 
 import main.com.annotation.*;
 import main.com.util.*;
@@ -21,15 +21,14 @@ import main.com.util.*;
 public class FrontServlet extends HttpServlet {
 
     private Map<VerbUrl, Mapping> urlMappingMap;
-
-    
+    private Binder binder;
     private String prefixe;
     private String suffixe;
 
     @Override
     public void init(ServletConfig config) throws ServletException {
         super.init(config);
-
+        this.binder = new Binder();
        
         ServletContext servletContext = config.getServletContext();
         Object attribute = servletContext.getAttribute(
@@ -88,7 +87,7 @@ public class FrontServlet extends HttpServlet {
                 // Vérifier si la méthode a l'annotation @RestAPI
                 boolean isRestAPI = laMethode.isAnnotationPresent(RestAPI.class);
 
-                Object resultat = laMethode.invoke(instance, construireArguments(laMethode, request));
+                Object resultat = laMethode.invoke(instance, this.binder.construireArguments(laMethode, request));
 
                 if (isRestAPI) {
                     // Mode API REST - retourner du JSON
@@ -119,7 +118,7 @@ public class FrontServlet extends HttpServlet {
                     dispatcher.forward(request, response);
 
                 } else {
-                    out.println("Methode executee. (pas de ModelAndView retourne)");
+                    out.println("Methode executee(Pas ModelAndView/RestApi) = "+resultat);
                 }
 
             } catch (IllegalArgumentException e) {
@@ -153,58 +152,58 @@ public class FrontServlet extends HttpServlet {
         throw new NoSuchMethodException("Methode introuvable : " + nomMethode);
     }
 
-    private Object[] construireArguments(Method methode, HttpServletRequest request) {
-        Parameter[] parametres = methode.getParameters();
-        Object[] arguments = new Object[parametres.length];
+    // private Object[] construireArguments(Method methode, HttpServletRequest request) {
+    //     Parameter[] parametres = methode.getParameters();
+    //     Object[] arguments = new Object[parametres.length];
 
-        for (int i = 0; i < parametres.length; i++) {
-            Parameter parametre = parametres[i];
-            if (!parametre.isNamePresent()) {
-                throw new IllegalArgumentException(
-                        "Les noms des parametres de " + methode.getName()
-                                + " ne sont pas disponibles. Compilez avec -parameters.");
-            }
+    //     for (int i = 0; i < parametres.length; i++) {
+    //         Parameter parametre = parametres[i];
+    //         if (!parametre.isNamePresent()) {
+    //             throw new IllegalArgumentException(
+    //                     "Les noms des parametres de " + methode.getName()
+    //                             + " ne sont pas disponibles. Compilez avec -parameters.");
+    //         }
 
-            String valeur = request.getParameter(parametre.getName());
-            if (valeur == null) {
-                throw new IllegalArgumentException(
-                        "Parametre requis manquant : " + parametre.getName());
-            }
-            arguments[i] = convertirArgument(valeur, parametre.getType(), parametre.getName());
-        }
-        return arguments;
-    }
+    //         String valeur = request.getParameter(parametre.getName());
+    //         if (valeur == null) {
+    //             throw new IllegalArgumentException(
+    //                     "Parametre requis manquant : " + parametre.getName());
+    //         }
+    //         arguments[i] = convertirArgument(valeur, parametre.getType(), parametre.getName());
+    //     }
+    //     return arguments;
+    // }
 
-    private Object convertirArgument(String valeur, Class<?> type, String nomParametre) {
-        try {
-            if (type == String.class) return valeur;
-            if (type == int.class || type == Integer.class) return Integer.valueOf(valeur);
-            if (type == long.class || type == Long.class) return Long.valueOf(valeur);
-            if (type == double.class || type == Double.class) return Double.valueOf(valeur);
-            if (type == float.class || type == Float.class) return Float.valueOf(valeur);
-            if (type == short.class || type == Short.class) return Short.valueOf(valeur);
-            if (type == byte.class || type == Byte.class) return Byte.valueOf(valeur);
-            if (type == boolean.class || type == Boolean.class) return Boolean.valueOf(valeur);
-            if (type == char.class || type == Character.class) {
-                if (valeur.length() != 1) {
-                    throw new IllegalArgumentException(
-                            "Le parametre " + nomParametre + " doit contenir un seul caractere.");
-                }
-                return valeur.charAt(0);
-            }
-            if (type.isEnum()) {
-                @SuppressWarnings({"rawtypes", "unchecked"})
-                Object valeurEnum = Enum.valueOf((Class<? extends Enum>) type, valeur);
-                return valeurEnum;
-            }
-        } catch (IllegalArgumentException e) {
-            throw new IllegalArgumentException(
-                    "Valeur invalide pour le parametre " + nomParametre + " : " + valeur, e);
-        }
+    // private Object convertirArgument(String valeur, Class<?> type, String nomParametre) {
+    //     try {
+    //         if (type == String.class) return valeur;
+    //         if (type == int.class || type == Integer.class) return Integer.valueOf(valeur);
+    //         if (type == long.class || type == Long.class) return Long.valueOf(valeur);
+    //         if (type == double.class || type == Double.class) return Double.valueOf(valeur);
+    //         if (type == float.class || type == Float.class) return Float.valueOf(valeur);
+    //         if (type == short.class || type == Short.class) return Short.valueOf(valeur);
+    //         if (type == byte.class || type == Byte.class) return Byte.valueOf(valeur);
+    //         if (type == boolean.class || type == Boolean.class) return Boolean.valueOf(valeur);
+    //         if (type == char.class || type == Character.class) {
+    //             if (valeur.length() != 1) {
+    //                 throw new IllegalArgumentException(
+    //                         "Le parametre " + nomParametre + " doit contenir un seul caractere.");
+    //             }
+    //             return valeur.charAt(0);
+    //         }
+    //         if (type.isEnum()) {
+    //             @SuppressWarnings({"rawtypes", "unchecked"})
+    //             Object valeurEnum = Enum.valueOf((Class<? extends Enum>) type, valeur);
+    //             return valeurEnum;
+    //         }
+    //     } catch (IllegalArgumentException e) {
+    //         throw new IllegalArgumentException(
+    //                 "Valeur invalide pour le parametre " + nomParametre + " : " + valeur, e);
+    //     }
 
-        throw new IllegalArgumentException(
-                "Type de parametre non supporte pour " + nomParametre + " : " + type.getName());
-    }
+    //     throw new IllegalArgumentException(
+    //             "Type de parametre non supporte pour " + nomParametre + " : " + type.getName());
+    // }
 
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)

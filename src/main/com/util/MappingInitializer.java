@@ -2,7 +2,7 @@ package main.com.util;
 
 import main.com.annotation.*;
 
-import jakarta.servlet.ServletException;
+import javax.servlet.ServletException;
 import java.lang.reflect.Method;
 import java.util.List;
 import java.util.Map;
