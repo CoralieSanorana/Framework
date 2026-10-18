@@ -7,10 +7,18 @@ import java.lang.reflect.Parameter;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Function;
+import java.io.IOException; 
+import java.io.InputStream; 
+import java.lang.reflect.ParameterizedType; 
+import java.lang.reflect.Type; 
+import java.util.*; 
+import javax.servlet.ServletException; 
+import javax.servlet.http.Part;
+import java.io.ByteArrayOutputStream;
 
 public class Binder {
 
-    // Registre des convertisseurs pour éviter la longue chaîne de if/else
+    // Registre des convertisseurs pour eviter la longue chaine de if/else
     private static final Map<Class<?>, Function<String, ?>> CONVERTERS = new HashMap<>();
     static {
         CONVERTERS.put(String.class, v -> v);
@@ -38,9 +46,24 @@ public class Binder {
             Parameter parametre = parametres[i];
             Class typeParam = parametre.getType();
 
-            // 1. Cas où la méthode demande directement le HttpServletRequest
+            // 1. Cas ou la methode demande directement le HttpServletRequest
             if (HttpServletRequest.class.isAssignableFrom(typeParam)) {
                 arguments[i] = request;
+                continue;
+            }
+
+            // 1bis. Upload : FileUpload, FileUpload[] ou List<FileUpload>
+            if (estTypeUpload(parametre)) {
+                String nomParam = parametre.getName();   // = attribut name de <input type="file">
+                List<FileUpload> fichiers = lireFichiers(request, nomParam);
+
+                if (typeParam == FileUpload.class) {
+                    arguments[i] = fichiers.isEmpty() ? null : fichiers.get(0);
+                } else if (typeParam.isArray()) {
+                    arguments[i] = fichiers.toArray(new FileUpload[0]);
+                } else {
+                    arguments[i] = fichiers;
+                }
                 continue;
             }
 
@@ -73,19 +96,29 @@ public class Binder {
         return arguments;
     }
 
-    // Crée une instance de la classe cible et remplit ses champs à partir du HttpServletRequest.
+    // Cree une instance de la classe cible et remplit ses champs a partir du HttpServletRequest.
     private Object instancierEtRemplirObjet(Class clazz, HttpServletRequest request) {
         try {
             // Instanciation de l'objet via le constructeur sans argument
             Object instance = clazz.getDeclaredConstructor().newInstance();
 
-            // Parcours de tous les champs déclarés de la classe
+            // Parcours de tous les champs declares de la classe
             Field[] fields = clazz.getDeclaredFields();
             for (Field field : fields) {
                 String fieldName = field.getName();
+
+                if (field.getType() == FileUpload.class) {
+                    List<FileUpload> f = lireFichiers(request, fieldName);
+                    if (!f.isEmpty()) {
+                        field.setAccessible(true);
+                        field.set(instance, f.get(0));
+                    }
+                    continue;
+                }
+
                 String valeurReq = request.getParameter(fieldName);
 
-                // Si la requête contient une valeur correspondant au nom du champ
+                // Si la requete contient une valeur correspondant au nom du champ
                 if (valeurReq != null && !valeurReq.trim().isEmpty()) {
                     field.setAccessible(true);
                     Object valeurConvertie = convertirArgument(valeurReq, field.getType(), fieldName);
@@ -99,7 +132,7 @@ public class Binder {
         }
     }
 
-    // Vérifie si le type est un type simple supporté directement.
+    // Verifie si le type est un type simple supporte directement.
     private boolean estTypeSimple(Class type) {
         return CONVERTERS.containsKey(type) 
                 || type.isEnum() 
@@ -136,7 +169,7 @@ public class Binder {
                 "Type de parametre non supporte pour " + nomParametre + " : " + type.getName());
     }
 
-    // Fournit une valeur par défaut pour les types primitifs si le paramètre est absent.
+    // Fournit une valeur par defaut pour les types primitifs si le parametre est absent.
     private Object valeurParDefautPrimitif(Class type) {
         if (type == boolean.class) return false;
         if (type == char.class) return '\0';
@@ -148,4 +181,50 @@ public class Binder {
         if (type == double.class) return 0.0d;
         return null;
     }
+
+    private boolean estTypeUpload(Parameter p) {
+        Class<?> t = p.getType();
+        if (t == FileUpload.class) return true;
+        if (t.isArray() && t.getComponentType() == FileUpload.class) return true;
+        if (List.class.isAssignableFrom(t)) {
+            Type g = p.getParameterizedType();
+            if (g instanceof ParameterizedType) {
+                Type arg = ((ParameterizedType) g).getActualTypeArguments()[0];
+                return arg == FileUpload.class;
+            }
+        }
+        return false;
+    }
+
+    private List<FileUpload> lireFichiers(HttpServletRequest request, String nom) {
+        List<FileUpload> resultat = new ArrayList<>();
+        String ct = request.getContentType();
+        if (ct == null || !ct.toLowerCase().startsWith("multipart/")) {
+            return resultat;
+        }
+        try {
+            for (Part part : request.getParts()) {
+                if (!nom.equals(part.getName())) continue;
+                String nomFichier = part.getSubmittedFileName();
+                if (nomFichier == null || nomFichier.isEmpty()) continue;
+                try (InputStream in = part.getInputStream()) {
+                    resultat.add(new FileUpload(nomFichier, part.getContentType(), lireOctets(in)));
+                }
+            }
+        } catch (IOException | ServletException e) {
+            throw new IllegalArgumentException("Erreur lors de la lecture de l'upload : " + nom, e);
+        }
+        return resultat;
+    }
+
+    private byte[] lireOctets(InputStream in) throws IOException {
+        ByteArrayOutputStream buffer = new ByteArrayOutputStream();
+        byte[] data = new byte[8192];
+        int n;
+        while ((n = in.read(data)) != -1) {
+            buffer.write(data, 0, n);
+        }
+        return buffer.toByteArray();
+    }
+
 }

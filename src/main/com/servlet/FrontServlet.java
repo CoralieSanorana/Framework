@@ -152,59 +152,6 @@ public class FrontServlet extends HttpServlet {
         throw new NoSuchMethodException("Methode introuvable : " + nomMethode);
     }
 
-    // private Object[] construireArguments(Method methode, HttpServletRequest request) {
-    //     Parameter[] parametres = methode.getParameters();
-    //     Object[] arguments = new Object[parametres.length];
-
-    //     for (int i = 0; i < parametres.length; i++) {
-    //         Parameter parametre = parametres[i];
-    //         if (!parametre.isNamePresent()) {
-    //             throw new IllegalArgumentException(
-    //                     "Les noms des parametres de " + methode.getName()
-    //                             + " ne sont pas disponibles. Compilez avec -parameters.");
-    //         }
-
-    //         String valeur = request.getParameter(parametre.getName());
-    //         if (valeur == null) {
-    //             throw new IllegalArgumentException(
-    //                     "Parametre requis manquant : " + parametre.getName());
-    //         }
-    //         arguments[i] = convertirArgument(valeur, parametre.getType(), parametre.getName());
-    //     }
-    //     return arguments;
-    // }
-
-    // private Object convertirArgument(String valeur, Class<?> type, String nomParametre) {
-    //     try {
-    //         if (type == String.class) return valeur;
-    //         if (type == int.class || type == Integer.class) return Integer.valueOf(valeur);
-    //         if (type == long.class || type == Long.class) return Long.valueOf(valeur);
-    //         if (type == double.class || type == Double.class) return Double.valueOf(valeur);
-    //         if (type == float.class || type == Float.class) return Float.valueOf(valeur);
-    //         if (type == short.class || type == Short.class) return Short.valueOf(valeur);
-    //         if (type == byte.class || type == Byte.class) return Byte.valueOf(valeur);
-    //         if (type == boolean.class || type == Boolean.class) return Boolean.valueOf(valeur);
-    //         if (type == char.class || type == Character.class) {
-    //             if (valeur.length() != 1) {
-    //                 throw new IllegalArgumentException(
-    //                         "Le parametre " + nomParametre + " doit contenir un seul caractere.");
-    //             }
-    //             return valeur.charAt(0);
-    //         }
-    //         if (type.isEnum()) {
-    //             @SuppressWarnings({"rawtypes", "unchecked"})
-    //             Object valeurEnum = Enum.valueOf((Class<? extends Enum>) type, valeur);
-    //             return valeurEnum;
-    //         }
-    //     } catch (IllegalArgumentException e) {
-    //         throw new IllegalArgumentException(
-    //                 "Valeur invalide pour le parametre " + nomParametre + " : " + valeur, e);
-    //     }
-
-    //     throw new IllegalArgumentException(
-    //             "Type de parametre non supporte pour " + nomParametre + " : " + type.getName());
-    // }
-
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
