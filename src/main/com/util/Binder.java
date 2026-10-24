@@ -52,7 +52,13 @@ public class Binder {
                 continue;
             }
 
-            // 1bis. Upload : FileUpload, FileUpload[] ou List<FileUpload>
+            // 2. Cas ou la methode demande directement MySession
+            if (MySession.class.isAssignableFrom(typeParam)) {
+                arguments[i] = new MySession(request.getSession());
+                continue;
+            }
+
+            // 3. Upload : FileUpload, FileUpload[] ou List<FileUpload>
             if (estTypeUpload(parametre)) {
                 String nomParam = parametre.getName();   // = attribut name de <input type="file">
                 List<FileUpload> fichiers = lireFichiers(request, nomParam);
@@ -67,7 +73,7 @@ public class Binder {
                 continue;
             }
 
-            // 2. Cas des types simples (Primitifs, Wrappers, String, Enum, Char)
+            // 4. Cas des types simples (Primitifs, Wrappers, String, Enum, Char)
             if (estTypeSimple(typeParam)) {
                 if (!parametre.isNamePresent()) {
                     throw new IllegalArgumentException(
@@ -88,7 +94,7 @@ public class Binder {
 
                 arguments[i] = convertirArgument(valeur, typeParam, nomParam);
             } 
-            // 3. Cas d'un objet complexe (Model / DTO)
+            // 5. Cas d'un objet complexe (Model / DTO)
             else {
                 arguments[i] = instancierEtRemplirObjet(typeParam, request);
             }
