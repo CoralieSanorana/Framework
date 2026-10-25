@@ -84,7 +84,33 @@ public class FrontServlet extends HttpServlet {
                 Object   instance  = laClasse.getDeclaredConstructor().newInstance();
                 Method   laMethode = trouverMethode(laClasse, mapping.getMethodName());
 
-                // Vérifier si la méthode a l'annotation @RestAPI
+                // Gestion des authorisations
+                if (laMethode.isAnnotationPresent(Autorisation.class)) {
+                    Autorisation authAnnotation = laMethode.getAnnotation(Autorisation.class);
+                    String accesRequis = authAnnotation.value(); 
+
+                    // Recuperation de la session de l'utilisateur via MySession
+                    MySession sessionCourante = new MySession(request.getSession());
+                    Object accesUserObj = sessionCourante.get("acces");
+
+                    // Verifier si l'utilisateur est connecte
+                    if (accesUserObj == null) {
+                        response.setStatus(HttpServletResponse.SC_UNAUTHORIZED); 
+                        out.println("Erreur : Acces refuse. Veuillez vous connecter.");
+                        return;
+                    }
+
+                    String accesUser = accesUserObj.toString();
+
+                    // Verifier si l'utilisateur a le niveau d'acces requis
+                    if (!accesRequis.isEmpty() && !accesUser.equalsIgnoreCase(accesRequis)) {
+                        response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+                        out.println("Erreur : Acces interdit. Role requis : " + accesRequis + " (Votre role : " + accesUser + ")");
+                        return;
+                    }
+                }
+
+                // Verifier si la methode a l'annotation @RestAPI
                 boolean isRestAPI = laMethode.isAnnotationPresent(RestAPI.class);
 
                 Object resultat = laMethode.invoke(instance, this.binder.construireArguments(laMethode, request));
@@ -94,16 +120,13 @@ public class FrontServlet extends HttpServlet {
                     response.setContentType("application/json;charset=UTF-8");
                     
                     if (resultat instanceof String) {
-                        // Si c'est une String, écrire directement
                         out.print(resultat);
                     } else {
-                        // Sinon, convertir en JSON avec Gson
                         Gson gson = new Gson();
                         String json = gson.toJson(resultat);
                         out.print(json);
                     }
                 } else if (resultat instanceof ModelAndView) {
-                    // Mode classique - forward vers JSP
                     ModelAndView mv = (ModelAndView) resultat;
                     String cheminJsp = prefixe + mv.getUrl() + suffixe;
                     if (!cheminJsp.startsWith("/")) {
