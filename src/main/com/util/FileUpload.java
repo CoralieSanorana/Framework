@@ -17,6 +17,7 @@ public class FileUpload {
         this.content = content;
     }
 
+    // Getters
     public String getFileName()    { return fileName; }
     public String getContentType() { return contentType; }
     public long   getSize()        { return content.length; }
