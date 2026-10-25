@@ -12,6 +12,11 @@ public class MySession {
         this.session = session;
     }
 
+    // Recuperer l'ID unique de la session
+    public String getId() {
+        return session.getId();
+    }
+
     public Object get(String key) {
         return session.getAttribute(key);
     }
@@ -28,8 +33,8 @@ public class MySession {
         session.invalidate();
     }
 
-    // Optionnel : récupérer toute la session sous forme de Map pour affichage
-    public Map<String, Object> getAll() {
+    // Recuperer tous les attributs stockes dans la session de CET utilisateur
+    public Map<String, Object> getAllAttributes() {
         Map<String, Object> map = new HashMap<>();
         Enumeration<String> keys = session.getAttributeNames();
         while (keys.hasMoreElements()) {

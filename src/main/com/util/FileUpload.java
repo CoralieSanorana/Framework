@@ -22,10 +22,6 @@ public class FileUpload {
     public String getContentType() { return contentType; }
     public long   getSize()        { return content.length; }
     public byte[] getBytes()       { return content; }
-    // Setters
-    public void setFileName(String fileName) { this.fileName = Paths.get(fileName).getFileName().toString(); }
-    public void setContentType(String contentType) { this.contentType = contentType; }
-    public void setBytes(byte[] content) { this.content = content; }
 
     public Path save(String directory) throws IOException {
         Path dir = Paths.get(directory);
