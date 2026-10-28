@@ -8,5 +8,5 @@ import java.lang.annotation.Target;
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.METHOD)
 public @interface Autorisation {
-    String value() default "";  // ADMIN ou USER selon username
+    String[] value() default {};  // tableau des roles autorises
 }

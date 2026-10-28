@@ -24,6 +24,7 @@ public class FrontServlet extends HttpServlet {
     private Binder binder;
     private String prefixe;
     private String suffixe;
+    private String authorisationKey;
 
     @Override
     public void init(ServletConfig config) throws ServletException {
@@ -48,9 +49,11 @@ public class FrontServlet extends HttpServlet {
 
         this.prefixe = config.getInitParameter("prefixe");
         this.suffixe = config.getInitParameter("suffixe");
+        this.authorisationKey = config.getInitParameter("authorisation");
 
         System.out.println("[Framework] prefixe = " + prefixe);
         System.out.println("[Framework] suffixe = " + suffixe);
+        System.out.println("[Framework] authorisation key = " + authorisationKey);
     }
 
     protected void processRequest(HttpServletRequest request, HttpServletResponse response)
@@ -87,26 +90,41 @@ public class FrontServlet extends HttpServlet {
                 // Gestion des authorisations
                 if (laMethode.isAnnotationPresent(Autorisation.class)) {
                     Autorisation authAnnotation = laMethode.getAnnotation(Autorisation.class);
-                    String accesRequis = authAnnotation.value(); 
+                    String[] rolesAutorises = authAnnotation.value(); 
 
-                    // Recuperation de la session de l'utilisateur via MySession
                     MySession sessionCourante = new MySession(request.getSession());
-                    Object accesUserObj = sessionCourante.get("acces");
 
-                    // Verifier si l'utilisateur est connecte
-                    if (accesUserObj == null) {
-                        response.setStatus(HttpServletResponse.SC_UNAUTHORIZED); 
+                    // Verifier si un utilisateur est connecte
+                    if (this.authorisationKey == null || this.authorisationKey.trim().isEmpty()) {
+                        throw new ServletException("Parametre d'init 'authorisation' manquant dans web.xml");
+                    }
+
+                    Object roleUserObj = sessionCourante.get(this.authorisationKey);
+
+                    // Si la cle est absente de la session
+                    if (roleUserObj == null) {
+                        response.setStatus(HttpServletResponse.SC_UNAUTHORIZED); // 401
                         out.println("Erreur : Acces refuse. Veuillez vous connecter.");
                         return;
                     }
 
-                    String accesUser = accesUserObj.toString();
+                    String roleUser = roleUserObj.toString();
 
-                    // Verifier si l'utilisateur a le niveau d'acces requis
-                    if (!accesRequis.isEmpty() && !accesUser.equalsIgnoreCase(accesRequis)) {
-                        response.setStatus(HttpServletResponse.SC_FORBIDDEN);
-                        out.println("Erreur : Acces interdit. Role requis : " + accesRequis + " (Votre role : " + accesUser + ")");
-                        return;
+                    // Si des roles specifiques sont demandes, on verifie si le role de l'utilisateur y figure
+                    if (rolesAutorises != null && rolesAutorises.length > 0) {
+                        boolean estAutorise = false;
+                        for (String role : rolesAutorises) {
+                            if (role.equalsIgnoreCase(roleUser)) {
+                                estAutorise = true;
+                                break;
+                            }
+                        }
+
+                        if (!estAutorise) {
+                            response.setStatus(HttpServletResponse.SC_FORBIDDEN); // 403
+                            out.println("Erreur : Acces interdit. Votre rele (" + roleUser + ") n'est pas autorise pour cette ressource.");
+                            return;
+                        }
                     }
                 }
 
