@@ -21,6 +21,7 @@ import main.com.util.*;
 public class FrontServlet extends HttpServlet {
 
     private Map<VerbUrl, Mapping> urlMappingMap;
+    private Map<String, Object> classMap;
     private Binder binder;
     private String prefixe;
     private String suffixe;
@@ -50,6 +51,7 @@ public class FrontServlet extends HttpServlet {
         this.prefixe = config.getInitParameter("prefixe");
         this.suffixe = config.getInitParameter("suffixe");
         this.authorisationKey = config.getInitParameter("authorisation");
+        this.classMap = new HashMap<>();
 
         System.out.println("[Framework] prefixe = " + prefixe);
         System.out.println("[Framework] suffixe = " + suffixe);
@@ -84,7 +86,7 @@ public class FrontServlet extends HttpServlet {
 
             try {
                 Class<?> laClasse  = Class.forName(mapping.getClassName());
-                Object   instance  = laClasse.getDeclaredConstructor().newInstance();
+                Object   instance  = construireController(mapping.getClassName());
                 Method   laMethode = trouverMethode(laClasse, mapping.getMethodName());
 
                 // Gestion des authorisations
@@ -178,6 +180,7 @@ public class FrontServlet extends HttpServlet {
         out.println("Demandee : " + cle);
         out.println("");
         out.println("URLs disponibles :");
+        
         for (VerbUrl k : urlMappingMap.keySet()) {
             out.println("  " + k);
         }
@@ -191,6 +194,18 @@ public class FrontServlet extends HttpServlet {
             }
         }
         throw new NoSuchMethodException("Methode introuvable : " + nomMethode);
+    }
+
+    private Object construireController(String className) throws Exception {
+
+        if (classMap.containsKey(className)) {
+            return classMap.get(className);
+        } else {
+            Class<?> laClasse = Class.forName(className);
+            Object instance = laClasse.getDeclaredConstructor().newInstance();
+            classMap.put(className, instance);
+            return instance;
+        }
     }
 
     @Override
