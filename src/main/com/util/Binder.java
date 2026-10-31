@@ -15,6 +15,7 @@ import java.util.*;
 import javax.servlet.ServletException; 
 import javax.servlet.http.Part;
 import java.io.ByteArrayOutputStream;
+import javax.servlet.http.HttpSession;
 
 public class Binder {
 
@@ -52,9 +53,9 @@ public class Binder {
                 continue;
             }
 
-            // 2. Cas ou la methode demande directement MySession
-            if (MySession.class.isAssignableFrom(typeParam)) {
-                arguments[i] = new MySession(request.getSession());
+            // 2. Cas ou la methode demande directement le HttpSession standard de Java
+            if (HttpSession.class.isAssignableFrom(typeParam)) {
+                arguments[i] = request.getSession();
                 continue;
             }
 
@@ -93,7 +94,8 @@ public class Binder {
                 }
 
                 arguments[i] = convertirArgument(valeur, typeParam, nomParam);
-            } 
+            }
+            
             // 5. Cas d'un objet complexe (Model / DTO)
             else {
                 arguments[i] = instancierEtRemplirObjet(typeParam, request);

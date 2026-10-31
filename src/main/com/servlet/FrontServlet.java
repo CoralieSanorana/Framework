@@ -24,6 +24,7 @@ public class FrontServlet extends HttpServlet {
     private Binder binder;
     private String prefixe;
     private String suffixe;
+    private String authorisationKey;
 
     @Override
     public void init(ServletConfig config) throws ServletException {
@@ -48,9 +49,11 @@ public class FrontServlet extends HttpServlet {
 
         this.prefixe = config.getInitParameter("prefixe");
         this.suffixe = config.getInitParameter("suffixe");
+        this.authorisationKey = config.getInitParameter("authorisation");
 
         System.out.println("[Framework] prefixe = " + prefixe);
         System.out.println("[Framework] suffixe = " + suffixe);
+        System.out.println("[Framework] authorisation key = " + authorisationKey);
     }
 
     protected void processRequest(HttpServletRequest request, HttpServletResponse response)
@@ -84,7 +87,48 @@ public class FrontServlet extends HttpServlet {
                 Object   instance  = laClasse.getDeclaredConstructor().newInstance();
                 Method   laMethode = trouverMethode(laClasse, mapping.getMethodName());
 
-                // Vérifier si la méthode a l'annotation @RestAPI
+                // Gestion des authorisations
+                if (laMethode.isAnnotationPresent(Autorisation.class)) {
+                    Autorisation authAnnotation = laMethode.getAnnotation(Autorisation.class);
+                    String[] rolesAutorises = authAnnotation.value(); 
+
+                    MySession sessionCourante = new MySession(request.getSession());
+
+                    // Verifier si un utilisateur est connecte
+                    if (this.authorisationKey == null || this.authorisationKey.trim().isEmpty()) {
+                        throw new ServletException("Parametre d'init 'authorisation' manquant dans web.xml");
+                    }
+
+                    Object roleUserObj = sessionCourante.get(this.authorisationKey);
+
+                    // Si la cle est absente de la session
+                    if (roleUserObj == null) {
+                        response.setStatus(HttpServletResponse.SC_UNAUTHORIZED); // 401
+                        out.println("Erreur : Acces refuse. Veuillez vous connecter.");
+                        return;
+                    }
+
+                    String roleUser = roleUserObj.toString();
+
+                    // Si des roles specifiques sont demandes, on verifie si le role de l'utilisateur y figure
+                    if (rolesAutorises != null && rolesAutorises.length > 0) {
+                        boolean estAutorise = false;
+                        for (String role : rolesAutorises) {
+                            if (role.equalsIgnoreCase(roleUser)) {
+                                estAutorise = true;
+                                break;
+                            }
+                        }
+
+                        if (!estAutorise) {
+                            response.setStatus(HttpServletResponse.SC_FORBIDDEN); // 403
+                            out.println("Erreur : Acces interdit. Votre rele (" + roleUser + ") n'est pas autorise pour cette ressource.");
+                            return;
+                        }
+                    }
+                }
+
+                // Verifier si la methode a l'annotation @RestAPI
                 boolean isRestAPI = laMethode.isAnnotationPresent(RestAPI.class);
 
                 Object resultat = laMethode.invoke(instance, this.binder.construireArguments(laMethode, request));
@@ -94,16 +138,13 @@ public class FrontServlet extends HttpServlet {
                     response.setContentType("application/json;charset=UTF-8");
                     
                     if (resultat instanceof String) {
-                        // Si c'est une String, écrire directement
                         out.print(resultat);
                     } else {
-                        // Sinon, convertir en JSON avec Gson
                         Gson gson = new Gson();
                         String json = gson.toJson(resultat);
                         out.print(json);
                     }
                 } else if (resultat instanceof ModelAndView) {
-                    // Mode classique - forward vers JSP
                     ModelAndView mv = (ModelAndView) resultat;
                     String cheminJsp = prefixe + mv.getUrl() + suffixe;
                     if (!cheminJsp.startsWith("/")) {

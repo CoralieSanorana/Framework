@@ -12,17 +12,17 @@ public class MySession {
         this.session = session;
     }
 
-    // Recuperer l'ID unique de la session
     public String getId() {
         return session.getId();
     }
 
-    public Object get(String key) {
-        return session.getAttribute(key);
-    }
-
+    // Chaque écriture modifie instantanément le HttpSession sous-jacent
     public void set(String key, Object value) {
         session.setAttribute(key, value);
+    }
+
+    public Object get(String key) {
+        return session.getAttribute(key);
     }
 
     public void remove(String key) {
@@ -33,7 +33,6 @@ public class MySession {
         session.invalidate();
     }
 
-    // Recuperer tous les attributs stockes dans la session de CET utilisateur
     public Map<String, Object> getAllAttributes() {
         Map<String, Object> map = new HashMap<>();
         Enumeration<String> keys = session.getAttributeNames();
